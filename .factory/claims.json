@@ -1,0 +1,8 @@
+[
+  {"id":"complete-run","claim":"Play five visual challenges and compare confidence with answers.","where":"landing hero, README","test":"npx playwright test --grep @claim:complete-run","sandbox":"fresh browser context at /demo; scripted answers reach the calibration screen"},
+  {"id":"restart-run","claim":"Play a fresh practice run.","where":"results button","test":"npx playwright test --grep @claim:restart-run","sandbox":"fresh browser context at /demo; complete then restart"},
+  {"id":"local-scores","claim":"Scores stay on this device, with no analytics or third-party requests.","where":"landing facts, privacy, README","test":"npx playwright test --grep @claim:local-scores","sandbox":"fresh browser context at /demo; record all requests and inspect demo local storage"},
+  {"id":"assist-persist","claim":"Timing assist persists after reload.","where":"game settings","test":"npx playwright test --grep @claim:assist-persist","sandbox":"fresh browser context at /demo; enable assist and reload"},
+  {"id":"free-play","claim":"Free to play.","where":"landing facts","test":"npx playwright test --grep @claim:free-play","sandbox":"fresh browser context at /demo; game opens with no payment step"},
+  {"id":"no-account","claim":"No account needed.","where":"landing facts","test":"npx playwright test --grep @claim:no-account","sandbox":"fresh browser context at /demo; game opens without an account form"}
+]

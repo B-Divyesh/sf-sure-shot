@@ -1,14 +1,37 @@
 # Sure Shot
 
-Live: https://sure-shot.sociobot.in — built by the Param Factory (`browser-game`).
+Play five visual challenges and compare your confidence with your answers.
+Sure Shot is for curious adults who want a short daily mental game, not an
+intelligence test.
 
-See `.factory/brief.json` for the researched problem this solves and `.factory/design.md` for the visual system.
+## Run it
 
-## Develop
-
-```
+```bash
 npm install
 npm run dev
-npm test
-npm run build   # -> dist/
 ```
+
+Open `http://localhost:5173`. Open `/demo` for the isolated sample game. Demo
+state uses `demo:active` in localStorage; a real game uses `sure-shot:active`.
+
+## Test and build
+
+```bash
+npm test
+npx playwright test
+npm run build
+```
+
+The static deployment files are written to `dist/`. The exact production build
+command is `npm run build`.
+
+## Privacy and scope
+
+Game answers and settings remain in the browser. The game includes no analytics
+or third-party requests. Read the in-app `/privacy` and `/terms` pages for details.
+
+## Deploy
+
+Deploy the contents of `dist/` to a static web host with SPA fallback. The
+included `staticwebapp.config.json` supplies the fallback, cache headers, and
+security headers for Azure Static Web Apps.
