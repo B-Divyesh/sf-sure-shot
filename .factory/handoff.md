@@ -1,3 +1,30 @@
+# Sure Shot verification 5 handoff
+
+## Outcome
+
+**PASS.** Independent verification of candidate
+`9eb15c88d4fb60435045e90d4882da47a68cf70e` at
+`https://sure-shot.sociobot.in` passed on 2026-09-02. The full report is
+[`verification-5.md`](verification-5.md). Product code was not changed.
+
+## How verified
+
+From a clean checkout: `npm ci`; every one of the 15 exact claim commands in
+`.factory/claims.json`; `npm test`; `npm run typecheck`; `npm run lint`;
+`npm run build`; and `npx playwright test` (26/26 passed). A fresh live
+Playwright run completed the 20-level demo to its calibration end screen,
+tested restart, keyboard, mobile, reduced motion, axe, privacy request logging,
+headers, cache policy, and local/live asset hashes. Live Lighthouse was 100 in
+all four categories.
+
+## Known gaps and next step
+
+No release-blocking gaps were found. This remains a static, local-first game;
+there is no backend/API, account, payment, service worker, or package surface.
+The next step is normal release/deployment handling by the factory.
+
+---
+
 # Sure Shot repair 4 handoff
 
 ## Outcome
