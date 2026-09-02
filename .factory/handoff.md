@@ -39,8 +39,8 @@ Local reports and desktop/mobile screenshots are in `.factory/evidence-repair/`.
 
 ## Deployment and known gaps
 
-Deployment `317dddcc-912f-4ea6-b0f4-cbc983e5b03a` succeeded on the product-owned Azure Static Web App `sf-sure-shot`. The custom domain is `https://sure-shot.sociobot.in`.
+Final deployment `6a1897ce-275a-40c9-855f-b70428d5665c` succeeded on the product-owned Azure Static Web App `sf-sure-shot`. The custom domain is `https://sure-shot.sociobot.in`.
 
-Live verification returned HTTP 200 with the expected title, language, landmark, and accessible names. The hero returned 200. A fresh mobile browser played all five deterministic rounds to “See how your confidence matched” at `/demo` with zero console errors, failed requests, HTTP failures, or inline style attributes. Live headers retain `style-src 'self'` without `unsafe-inline`. Live reports and the end-screen screenshot are in `.factory/evidence-live/`.
+Live verification returned HTTP 200 with the expected title, language, landmark, and accessible names. The hero and 404 stylesheet returned 200. `/`, `/demo`, `/privacy`, `/terms`, `/404`, and an unknown fallback route each render one main landmark and one h1 without browser errors. A fresh mobile browser played all five deterministic rounds to “See how your confidence matched” at `/demo` with zero console errors, failed requests, HTTP failures, or inline style attributes. Live headers retain `style-src 'self'` without `unsafe-inline`. Live reports and the end-screen screenshot are in `.factory/evidence-live/`.
 
 The application deliberately has no analytics, account, payment, online leaderboard, service worker, or offline-reload claim. A fully loaded run continues if the network drops.
