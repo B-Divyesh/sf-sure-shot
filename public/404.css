@@ -31,6 +31,13 @@ nav {
   display: flex;
   gap: 20px;
 }
+nav a {
+  display: inline-flex;
+  min-width: 44px;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+}
 a {
   color: inherit;
   text-underline-offset: 3px;
@@ -41,6 +48,9 @@ a {
     serif;
   text-decoration: none;
   letter-spacing: -0.05em;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
 }
 .wordmark span {
   color: #b94432;
@@ -111,7 +121,7 @@ footer {
   }
   nav {
     width: 100%;
-    gap: 6px;
+    gap: 8px;
     justify-content: space-between;
     flex-wrap: wrap;
   }

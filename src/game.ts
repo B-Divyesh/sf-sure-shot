@@ -38,6 +38,19 @@ export type Run = {
 export const LEVEL_COUNT = 20;
 export const FRAME_MS = 1000 / 60;
 
+/**
+ * A planning proxy for the advertised session length. The budget includes
+ * reading, choosing, setting confidence, and checking feedback. Pattern rounds
+ * include their two-second preview; timing rounds include their generated
+ * target. It is deliberately independent of test automation speed.
+ */
+export function plannedSeconds(round: Round) {
+  if (round.kind === "Pattern recall") return 16;
+  if (round.kind === "Timing") return Number(((round.target ?? 3.2) + 11).toFixed(1));
+  if (round.kind === "Spatial judgment") return 15;
+  return 14;
+}
+
 const kinds: ChallengeKind[] = [
   "Visual estimate",
   "Pattern recall",

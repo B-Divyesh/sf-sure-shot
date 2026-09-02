@@ -5,6 +5,7 @@ import {
   isSavedRun,
   LEVEL_COUNT,
   newRun,
+  plannedSeconds,
   roundsForSeed,
   takeaway,
   type Run,
@@ -123,7 +124,7 @@ function header() {
   return `<a class="skip" href="#main">Skip to game</a><header><a class="wordmark" href="/" data-route>Sure Shot<span>●</span></a><nav aria-label="Main navigation"><a href="/demo" data-route>Demo</a><a href="/privacy" data-route>Privacy</a><a href="/terms" data-route>Terms</a></nav></header>`;
 }
 function footer() {
-  return `<footer><p>Twenty short visual challenges about confidence.</p><p><a href="/privacy" data-route>Privacy</a> · <a href="/terms" data-route>Terms</a> · Built by Param Factory · v1.2</p><p>Illustration generated for Sure Shot.</p></footer>`;
+  return `<footer><p>Twenty short visual challenges about confidence.</p><p class="footer-links"><a href="/privacy" data-route>Privacy</a><a href="/terms" data-route>Terms</a><span>Built by Param Factory · v1.3</span></p><p>Illustration generated for Sure Shot.</p></footer>`;
 }
 function demoBar() {
   return state.demo
@@ -193,7 +194,7 @@ function game() {
     challenge = `<div class="spatial-stage" role="img" aria-label="Starting shape: ${escape(spatialDescription(round.spatial![0]))}. Turn it clockwise once."><span class="shape large">${spatial(round.spatial![0])}</span><span class="turn" aria-hidden="true">↻</span></div>`;
   const feedback = run.phase === "feedback" ? feedbackPanel() : "";
   pageShell(
-    `<section class="game-screen">${!state.demo ? `<section class="game-first-read" aria-labelledby="game-intro-title"><p class="eyebrow">20 levels · 4–6 minutes</p><h1 id="game-intro-title">Calibrate confidence with visual challenges</h1><p>For curious adults who want a daily mental game that compares confidence with answers.</p><div class="intro-action"><button class="primary" data-action="demo">Try it with sample data</button><span>Open an isolated 20-level game. It will not change this run.</span></div><ul class="game-facts"><li>Private: scores stay in this browser.</li><li>Connection: finish a loaded challenge offline.</li><li>Price: free to play.</li></ul></section>` : ""}${state.recovered ? `<p class="recovery" role="status">Your saved game could not be restored. A fresh run has started.</p>` : ""}<div class="run-top"><p class="eyebrow">Level ${run.round + 1} of ${LEVEL_COUNT} · ${round.kind} · ${run.seed}</p><button class="quiet" data-action="toggle-assist">${state.settings.assist ? "Assist mode on" : "Use timing assist"}</button></div><progress class="round-progress" aria-label="Level progress" max="${LEVEL_COUNT}" value="${run.round + 1}">${run.round + 1} of ${LEVEL_COUNT}</progress><h${state.demo ? "1" : "2"} class="round-question">${round.prompt}</h${state.demo ? "1" : "2"}><p class="round-detail">${round.detail}</p><div class="challenge">${challenge}</div>${selection}<div class="confidence"><label for="confidence">How sure are you? <output id="confidence-value">${state.confidence}%</output></label><input id="confidence" type="range" min="50" max="100" step="5" value="${state.confidence}" aria-describedby="confidence-help" /><p id="confidence-help">50% means a close call. 100% means you expect to be right.</p></div>${!isTiming && run.phase === "answer" ? `<button class="primary lock" data-action="lock" ${state.selected ? "" : "disabled"}>Lock in answer and confidence</button>` : ""}${feedback}</section>`,
+    `<section class="game-screen" data-planned-seconds="${plannedSeconds(round)}">${!state.demo ? `<section class="game-first-read" aria-labelledby="game-intro-title"><p class="eyebrow">20 levels · 4–6 minutes</p><h1 id="game-intro-title">Calibrate confidence with visual challenges</h1><p>For curious adults who want a daily mental game that compares confidence with answers.</p><div class="intro-action"><button class="primary" data-action="demo">Try it with sample data</button><span>Open an isolated 20-level game. It will not change this run.</span></div><ul class="game-facts"><li>Private: scores stay in this browser.</li><li>Connection: finish a loaded challenge offline.</li><li>Price: free to play.</li></ul></section>` : ""}${state.recovered ? `<p class="recovery" role="status">Your saved game could not be restored. A fresh run has started.</p>` : ""}<div class="run-top"><p class="eyebrow">Level ${run.round + 1} of ${LEVEL_COUNT} · ${round.kind} · ${run.seed}</p><button class="quiet" data-action="toggle-assist">${state.settings.assist ? "Assist mode on" : "Use timing assist"}</button></div><progress class="round-progress" aria-label="Level progress" max="${LEVEL_COUNT}" value="${run.round + 1}">${run.round + 1} of ${LEVEL_COUNT}</progress><h${state.demo ? "1" : "2"} class="round-question">${round.prompt}</h${state.demo ? "1" : "2"}><p class="round-detail">${round.detail}</p><div class="challenge">${challenge}</div>${selection}<div class="confidence"><label for="confidence">How sure are you? <output id="confidence-value">${state.confidence}%</output></label><input id="confidence" type="range" min="50" max="100" step="5" value="${state.confidence}" aria-describedby="confidence-help" /><p id="confidence-help">50% means a close call. 100% means you expect to be right.</p></div>${!isTiming && run.phase === "answer" ? `<button class="primary lock" data-action="lock" ${state.selected ? "" : "disabled"}>Lock in answer and confidence</button>` : ""}${feedback}</section>`,
   );
   if (
     round.kind === "Pattern recall" &&
@@ -288,7 +289,7 @@ function bind() {
       b.addEventListener("keydown", (event) => {
         const choices = [...document.querySelectorAll<HTMLButtonElement>("[data-choice]")];
         const current = choices.indexOf(b);
-        let next = current;
+        let next: number;
         if (event.key === "ArrowRight" || event.key === "ArrowDown")
           next = (current + 1) % choices.length;
         else if (event.key === "ArrowLeft" || event.key === "ArrowUp")

@@ -7,6 +7,7 @@ import {
   isSavedRun,
   LEVEL_COUNT,
   newRun,
+  plannedSeconds,
   roundsForSeed,
   takeaway,
   type Answer,
@@ -41,6 +42,14 @@ describe("Sure Shot deterministic game rules", () => {
   it("keeps exactly sixty fixed simulation steps in a deterministic second", () => {
     const frames = Array.from({ length: 61 }, (_, index) => index * FRAME_MS);
     expect(fixedSteps(frames)).toBe(60);
+  });
+
+  it("plans each deterministic daily set inside the four-to-six-minute window", () => {
+    for (const seed of ["SS-20260902", "SS-20260903", "SS-20301231"]) {
+      const seconds = roundsForSeed(seed).reduce((sum, round) => sum + plannedSeconds(round), 0);
+      expect(seconds).toBeGreaterThanOrEqual(4 * 60);
+      expect(seconds).toBeLessThanOrEqual(6 * 60);
+    }
   });
 
   it("computes confidence and accuracy by challenge kind", () => {

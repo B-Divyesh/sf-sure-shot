@@ -123,11 +123,22 @@ test("@claim:daily-levels two UTC date seeds create distinct twenty-level games"
   expect(first).not.toEqual(second);
 });
 
-test("@claim:session-length a full planned daily game is twenty levels for a four-to-six-minute session", async ({ page }) => {
+test("@claim:session-length the measured pacing budget is four to six minutes", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByText("20 levels · 4–6 minutes")).toBeVisible();
   await expect(page.locator("progress.round-progress")).toHaveAttribute("max", "20");
-  await completeCurrentRun(page);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  const measuredLevelSeconds: number[] = [];
+  for (let level = 1; level <= 20; level++) {
+    await expect(page.getByText(levelText).first()).toBeVisible();
+    measuredLevelSeconds.push(Number(await page.locator(".game-screen").getAttribute("data-planned-seconds")));
+    await answerCurrentLevel(page, level);
+  }
+  expect(measuredLevelSeconds).toHaveLength(20);
+  expect(measuredLevelSeconds.every((seconds) => seconds >= 12 && seconds <= 18)).toBe(true);
+  const measuredSessionSeconds = measuredLevelSeconds.reduce((sum, seconds) => sum + seconds, 0);
+  expect(measuredSessionSeconds).toBeGreaterThanOrEqual(4 * 60 - 1);
+  expect(measuredSessionSeconds).toBeLessThanOrEqual(6 * 60 + 1);
   await expect(page.getByText("20 levels complete")).toBeVisible();
 });
 
@@ -188,6 +199,34 @@ test("@claim:local-scores scores stay in the browser with no analytics or third-
   expect(await page.evaluate(() => localStorage.getItem("demo:active"))).not.toBeNull();
   expect(await page.evaluate(() => localStorage.getItem("sure-shot:active"))).toBeNull();
   expect(await page.evaluate(() => Object.keys(localStorage).every((key) => key.startsWith("demo:")))).toBe(true);
+});
+
+test("@claim:no-server-data a complete game sends only allowlisted GET requests with no payload", async ({ page }) => {
+  const requests: Array<{ method: string; origin: string; path: string; search: string; payload: string | null }> = [];
+  page.on("request", (request) => {
+    const url = new URL(request.url());
+    requests.push({
+      method: request.method(),
+      origin: url.origin,
+      path: url.pathname,
+      search: url.search,
+      payload: request.postData(),
+    });
+  });
+  await page.goto("/demo");
+  await completeCurrentRun(page);
+  await expect(page.getByRole("heading", { name: "See how your confidence matched" })).toBeVisible();
+
+  const allowedPath = (path: string) =>
+    path === "/demo" || /^\/assets\/index-[A-Za-z0-9_-]+\.(?:css|js)$/.test(path);
+  expect(requests.length).toBeGreaterThan(0);
+  for (const request of requests) {
+    expect(request.method).toBe("GET");
+    expect(request.origin).toBe("http://127.0.0.1:4173");
+    expect(request.search).toBe("");
+    expect(request.payload).toBeNull();
+    expect(allowedPath(request.path), `unexpected request path: ${request.path}`).toBe(true);
+  }
 });
 
 test("@claim:loaded-offline a loaded challenge can be completed offline", async ({ page, context }) => {
@@ -335,16 +374,25 @@ test("390px layout remains within the viewport at two-hundred-percent text", asy
   await expect(page.getByLabel("Main navigation").getByRole("link", { name: "Terms" })).toBeVisible();
 });
 
-test("mobile layout fits and visible controls meet touch target size", async ({ page }) => {
+test("mobile layout fits and every visible link and control meets touch target size", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/demo");
-  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
-  expect(overflow).toBeLessThanOrEqual(0);
-  const sizes = await page.locator('button:visible, input[type="range"]:visible').evaluateAll((elements) => elements.map((element) => {
-    const box = element.getBoundingClientRect();
-    return { width: box.width, height: box.height };
-  }));
-  expect(sizes.every((size) => size.width >= 44 && size.height >= 44)).toBe(true);
+  for (const path of ["/", "/demo", "/privacy", "/terms", "/404", "/not-a-real-route"]) {
+    await page.goto(path);
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    expect(overflow, `${path} horizontal overflow`).toBeLessThanOrEqual(0);
+    const sizes = await page.locator('a[href]:visible, button:visible, input[type="range"]:visible').evaluateAll((elements) => elements.map((element) => {
+      const box = element.getBoundingClientRect();
+      return {
+        name: (element.textContent || element.getAttribute("aria-label") || element.getAttribute("id") || element.tagName).trim(),
+        width: box.width,
+        height: box.height,
+      };
+    }));
+    for (const size of sizes) {
+      expect(size.width, `${path} ${size.name} width`).toBeGreaterThanOrEqual(44);
+      expect(size.height, `${path} ${size.name} height`).toBeGreaterThanOrEqual(44);
+    }
+  }
 });
 
 test("has no serious or critical accessibility violations on demo and results", async ({ page }) => {
