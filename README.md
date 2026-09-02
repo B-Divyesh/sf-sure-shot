@@ -1,19 +1,23 @@
 # Sure Shot
 
-Play twenty visual challenges and compare your confidence with your answers.
-Sure Shot is for curious adults who want a 4–6 minute daily mental game, not
-an intelligence test. Play with keyboard, mouse, or touch; the root page opens
-directly into today's active game, while `/demo` is an isolated sample run.
+Sure Shot is a 20-level, 4–6 minute daily mental game for curious adults who
+want to compare confidence with answers. Play with a keyboard, mouse, or touch.
 
-## Run it
+Each UTC date creates a deterministic daily set from its displayed
+`SS-YYYYMMDD` seed. An unfinished game keeps that seed after midnight. Timing
+assist adds exactly 1.5 seconds to each timing target. The 390px Chromium
+regression accepts at least 55 FPS across 60 animation frames.
+
+## Run
 
 ```bash
-npm install
+npm ci
 npm run dev
 ```
 
-Open `http://localhost:5173`. Open `/demo` for the isolated sample game. Demo
-state uses `demo:*` keys in localStorage; a real game uses `sure-shot:*` keys.
+Open `http://localhost:5173`. The root opens today’s active game. Open `/demo`
+for the isolated sample game; its data uses `demo:*` localStorage keys and
+never changes `sure-shot:*` real-game keys.
 
 ## Test and build
 
@@ -23,24 +27,19 @@ npx playwright test
 npm run build
 ```
 
-The static deployment files are written to `dist/`. The exact production build
-command is `npm run build`.
+Run every exact command in `.factory/claims.json` before release. The static
+production files are written to `dist/` by `npm run build`.
 
 ## Privacy and scope
 
-Game answers and settings remain in the browser. The game includes no analytics
-or third-party requests. Read the in-app `/privacy` and `/terms` pages for details.
-
-## Daily game and performance
-
-Each UTC date creates a deterministic 20-level set from its displayed `SS-YYYYMMDD`
-seed. An unfinished run keeps that seed after midnight. Sure Shot uses a fixed 60 Hz
-simulation loop and measured 60.006 FPS across 60 animation frames in the local
-Chromium 390px mobile profile (the regression acceptance margin is 55 FPS). `npm test`
-also verifies exactly 60 fixed steps for a deterministic one-second frame trace.
+Scores and settings stay in the browser. The game has no account, payment
+step, analytics, third-party requests, or server API. After a game page loads,
+you can finish its current challenge while offline. Read the in-app `/privacy`
+and `/terms` pages for details.
 
 ## Deploy
 
-Deploy the contents of `dist/` to a static web host with SPA fallback. The
-included `staticwebapp.config.json` supplies the fallback, cache headers, and
-security headers for Azure Static Web Apps.
+Deploy `dist/` as a static site. `staticwebapp.config.json` rewrites only the
+known app routes, returns the designed `/404.html` page with HTTP 404 for
+unknown routes, and provides cache and security headers for Azure Static Web
+Apps.

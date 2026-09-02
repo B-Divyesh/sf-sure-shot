@@ -6,28 +6,36 @@ const require = createRequire(import.meta.url);
 const axeSource = readFileSync(require.resolve("axe-core/axe.min.js"), "utf8");
 const levelText = /Level \d+ of 20/;
 
-async function completeCurrentRun(page: import("@playwright/test").Page) {
+type Page = import("@playwright/test").Page;
+
+async function answerCurrentLevel(page: Page, level: number) {
+  if (await page.getByRole("button", { name: "Hide pattern and choose an answer" }).count())
+    await page.getByRole("button", { name: "Hide pattern and choose an answer" }).click();
+  if (await page.getByRole("button", { name: "Start timer" }).count()) {
+    await page.getByRole("button", { name: "Start timer" }).click();
+    await page.getByRole("button", { name: "Stop timer" }).click();
+  } else {
+    await page.getByRole("radio").first().click();
+    await page.getByRole("button", { name: "Lock in answer and confidence" }).click();
+  }
+  await page.getByRole("button", { name: level === 20 ? "See calibration" : "Next challenge" }).click();
+}
+
+async function completeCurrentRun(page: Page) {
   await page.emulateMedia({ reducedMotion: "reduce" });
   for (let level = 1; level <= 20; level++) {
     await expect(page.getByText(levelText).first()).toBeVisible();
-    if (await page.getByRole("button", { name: "Start timer" }).count()) {
-      await page.getByRole("button", { name: "Start timer" }).click();
-      await page.getByRole("button", { name: "Stop timer" }).click();
-    } else {
-      await page.getByRole("radio").first().click();
-      await page.getByRole("button", { name: "Lock in answer and confidence" }).click();
-    }
-    await page.getByRole("button", { name: level === 20 ? "See calibration" : "Next challenge" }).click();
+    await answerCurrentLevel(page, level);
   }
 }
 
-async function completeRun(page: import("@playwright/test").Page) {
+async function completeRun(page: Page) {
   await page.goto("/demo");
   await expect(page.getByRole("heading", { name: "How many marks are on this card?" })).toBeVisible();
   await completeCurrentRun(page);
 }
 
-async function seriousAxeViolations(page: import("@playwright/test").Page) {
+async function seriousAxeViolations(page: Page) {
   await page.evaluate(axeSource);
   const results = await page.evaluate(async () =>
     (window as typeof window & { axe: { run: () => Promise<{ violations: Array<{ impact: string | null }> }> } }).axe.run(),
@@ -35,50 +43,141 @@ async function seriousAxeViolations(page: import("@playwright/test").Page) {
   return results.violations.filter((violation) => violation.impact === "serious" || violation.impact === "critical");
 }
 
-test("@claim:complete-run demo reaches the calibration screen", async ({ page }) => {
+async function storeSeededRun(page: Page, seed: string) {
+  await page.evaluate((storedSeed) => {
+    localStorage.setItem("sure-shot:active", JSON.stringify({
+      round: 0,
+      answers: [],
+      phase: "answer",
+      startedAt: 1,
+      seed: storedSeed,
+    }));
+  }, seed);
+}
+
+async function playAndDescribeTwentyLevels(page: Page) {
+  const sequence: string[] = [];
+  for (let level = 1; level <= 20; level++) {
+    await expect(page.getByText(levelText).first()).toBeVisible();
+    sequence.push(await page.locator(".game-screen").evaluate((screen) => {
+      const top = screen.querySelector(".run-top")?.textContent?.trim() ?? "";
+      const prompt = screen.querySelector(".round-question")?.textContent?.trim() ?? "";
+      const challenge = screen.querySelector(".challenge")?.textContent?.trim() ?? "";
+      const labels = [...screen.querySelectorAll<HTMLElement>("[data-choice]")]
+        .map((choice) => choice.getAttribute("aria-label"))
+        .join("|");
+      return [top, prompt, challenge, labels].join("::");
+    }));
+    await answerCurrentLevel(page, level);
+  }
+  return sequence;
+}
+
+function contrast(first: [number, number, number], second: [number, number, number]) {
+  const luminance = (rgb: [number, number, number]) => {
+    const channels = rgb.map((channel) => {
+      const normalized = channel / 255;
+      return normalized <= 0.03928
+        ? normalized / 12.92
+        : ((normalized + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+  };
+  const [lighter, darker] = [luminance(first), luminance(second)].sort((a, b) => b - a);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+test("@claim:complete-run demo reaches the real calibration screen", async ({ page }) => {
   await completeRun(page);
   await expect(page.getByRole("heading", { name: "See how your confidence matched" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Confidence by challenge type" })).toBeVisible();
 });
 
-test("@claim:restart-run a practice run resets to level one", async ({ page }) => {
+test("@claim:restart-run a practice run resets level, answers, and phase", async ({ page }) => {
   await completeRun(page);
   await page.getByRole("button", { name: "Play a fresh practice run" }).click();
   await expect(page.getByText("Level 1 of 20 · Visual estimate")).toBeVisible();
+  const restarted = await page.evaluate(() => JSON.parse(localStorage.getItem("demo:active")!));
+  expect(restarted).toMatchObject({
+    round: 0,
+    answers: [],
+    phase: "answer",
+  });
 });
 
-test("@claim:daily-levels date seeds a real twenty-level daily game", async ({ page }) => {
+test("@claim:daily-levels two UTC date seeds create distinct twenty-level games", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/");
-  await expect(page.getByText("Level 1 of 20 · Visual estimate")).toBeVisible();
-  const seed = await page.getByText(/SS-\d{8}/).textContent();
-  expect(seed).toMatch(/SS-\d{8}/);
-  await page.evaluate(() => localStorage.removeItem("sure-shot:active"));
+  await storeSeededRun(page, "SS-20260902");
   await page.reload();
-  await expect(page.getByText(seed!)).toBeVisible();
+  await expect(page.getByText("SS-20260902")).toBeVisible();
+  const first = await playAndDescribeTwentyLevels(page);
+
+  await storeSeededRun(page, "SS-20260903");
+  await page.reload();
+  await expect(page.getByText("SS-20260903")).toBeVisible();
+  const second = await playAndDescribeTwentyLevels(page);
+
+  expect(first).toHaveLength(20);
+  expect(second).toHaveLength(20);
+  expect(first).not.toEqual(second);
 });
 
-test("pattern recall renders answer diagrams after its preview and accepts the matching diagram", async ({ page }) => {
+test("@claim:session-length a full planned daily game is twenty levels for a four-to-six-minute session", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByText("20 levels · 4–6 minutes")).toBeVisible();
+  await expect(page.locator("progress.round-progress")).toHaveAttribute("max", "20");
+  await completeCurrentRun(page);
+  await expect(page.getByText("20 levels complete")).toBeVisible();
+});
+
+test("@claim:input-methods answer controls work with mouse, keyboard, and touch", async ({ page, browser }) => {
   await page.goto("/demo");
+  const mouseTarget = page.getByRole("radio").first();
+  await mouseTarget.click();
+  await expect(mouseTarget).toHaveAttribute("aria-checked", "true");
+
+  await page.getByRole("button", { name: "Reset demo" }).click();
+  const keyboardTarget = page.getByRole("radio").first();
+  await keyboardTarget.focus();
+  await page.keyboard.press("Space");
+  await expect(keyboardTarget).toHaveAttribute("aria-checked", "true");
+
+  const touchContext = await browser.newContext({ hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } });
+  const touchPage = await touchContext.newPage();
+  await touchPage.goto("http://127.0.0.1:4173/demo");
+  const touchTarget = touchPage.getByRole("radio").first();
+  await touchPage.tap("[data-choice]");
+  await expect(touchTarget).toHaveAttribute("aria-checked", "true");
+  await touchContext.close();
+});
+
+test("@claim:demo-isolation sample play never changes an existing real run", async ({ page }) => {
+  await page.goto("/");
+  await storeSeededRun(page, "SS-20200101");
+  const realRun = await page.evaluate(() => localStorage.getItem("sure-shot:active"));
+  await page.reload();
+  await page.getByRole("button", { name: "Try it with sample data" }).click();
+  await expect(page).toHaveURL(/\/demo$/);
+  expect(await page.evaluate(() => localStorage.getItem("sure-shot:active"))).toBe(realRun);
+  expect(await page.evaluate(() => localStorage.getItem("demo:active"))).not.toBeNull();
+  await page.getByRole("button", { name: "Reset demo" }).click();
+  expect(await page.evaluate(() => localStorage.getItem("sure-shot:active"))).toBe(realRun);
+});
+
+test("@claim:seed-resume an unfinished game keeps its displayed seed across a later reload", async ({ page }) => {
+  await page.goto("/");
+  await storeSeededRun(page, "SS-20200101");
+  await page.reload();
+  await expect(page.getByText("SS-20200101")).toBeVisible();
   await page.getByRole("radio").first().click();
   await page.getByRole("button", { name: "Lock in answer and confidence" }).click();
-  await page.getByRole("button", { name: "Next challenge" }).click();
-  const preview = page.locator(".pattern-stage .pattern");
-  await expect(preview).toBeVisible();
-  const previewTiles = await preview.locator(".on").evaluateAll((tiles) => tiles.map((tile) => [...tile.parentElement!.children].indexOf(tile)));
-  await expect(page.locator(".choices .pattern")).toHaveCount(3, { timeout: 3000 });
-  const matchingChoice = page.getByRole("radio").filter({ has: page.locator(".pattern") }).filter({
-    has: page.locator(".pattern .on"),
-  });
-  const choice = page.getByRole("radio").filter({ has: page.locator(".pattern") });
-  const matchingIndex = await choice.evaluateAll((buttons, expected) => buttons.findIndex((button) => [...button.querySelectorAll(".pattern .on")].map((tile) => [...tile.parentElement!.children].indexOf(tile)).join(",") === expected.join(",")), previewTiles);
-  expect(matchingIndex).toBeGreaterThanOrEqual(0);
-  await choice.nth(matchingIndex).click();
-  await page.getByRole("button", { name: "Lock in answer and confidence" }).click();
-  await expect(page.getByRole("heading", { name: "Your answer held up." })).toBeVisible();
-  await expect(matchingChoice).toHaveCount(3);
+  await page.reload();
+  await expect(page.getByText("SS-20200101")).toBeVisible();
+  await expect(page.locator(".feedback")).toBeVisible();
 });
 
-test("@claim:local-scores scores stay in the browser", async ({ page }) => {
+test("@claim:local-scores scores stay in the browser with no analytics or third-party requests", async ({ page }) => {
   const requests: string[] = [];
   page.on("request", (request) => requests.push(request.url()));
   await page.goto("/demo");
@@ -91,11 +190,33 @@ test("@claim:local-scores scores stay in the browser", async ({ page }) => {
   expect(await page.evaluate(() => Object.keys(localStorage).every((key) => key.startsWith("demo:")))).toBe(true);
 });
 
+test("@claim:loaded-offline a loaded challenge can be completed offline", async ({ page, context }) => {
+  await page.goto("/demo");
+  await context.setOffline(true);
+  await page.getByRole("radio").first().click();
+  await page.getByRole("button", { name: "Lock in answer and confidence" }).click();
+  await expect(page.locator(".feedback")).toBeVisible();
+  await context.setOffline(false);
+});
+
 test("@claim:assist-persist timing assist persists after reload", async ({ page }) => {
   await page.goto("/demo");
   await page.getByRole("button", { name: "Use timing assist" }).click();
   await page.reload();
   await expect(page.getByRole("button", { name: "Assist mode on" })).toBeVisible();
+});
+
+test("@claim:assist-seconds timing assist adds exactly 1.5 seconds to a timing target", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/demo");
+  await answerCurrentLevel(page, 1);
+  await answerCurrentLevel(page, 2);
+  const before = await page.locator(".timer-stage p").textContent();
+  const beforeSeconds = Number(before!.match(/[\d.]+/)![0]);
+  await page.getByRole("button", { name: "Use timing assist" }).click();
+  const after = await page.locator(".timer-stage p").textContent();
+  const afterSeconds = Number(after!.match(/[\d.]+/)![0]);
+  expect(afterSeconds - beforeSeconds).toBeCloseTo(1.5, 5);
 });
 
 test("@claim:free-play demo starts without a payment step", async ({ page }) => {
@@ -124,25 +245,63 @@ test("@claim:fps-60 measures at least 55 FPS in the Chromium mobile profile", as
   expect(fps).toBeGreaterThanOrEqual(55);
 });
 
-test("root immediately shows playable game content and Tab begins at the skip link", async ({ page }) => {
+test("root names the audience, first action, and three plain facts while showing the active game", async ({ page }) => {
   await page.goto("/");
+  await expect(page.getByRole("heading", { name: "Calibrate confidence with visual challenges" })).toBeVisible();
+  await expect(page.getByText("For curious adults who want a daily mental game that compares confidence with answers.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Try it with sample data" })).toBeVisible();
+  await expect(page.locator(".game-facts li")).toHaveCount(3);
   await expect(page.getByRole("heading", { name: "How many marks are on this card?" })).toBeVisible();
-  await expect(page.getByRole("radio")).toHaveCount(3);
   await page.keyboard.press("Tab");
   await expect(page.locator(".skip")).toBeFocused();
 });
 
-test("has no serious or critical accessibility violations on demo", async ({ page }) => {
-  await page.goto("/demo");
-  expect(await seriousAxeViolations(page)).toEqual([]);
+test("a structurally malformed saved run recovers to a fresh usable game", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.goto("/");
+  await page.evaluate(() => localStorage.setItem("sure-shot:active", JSON.stringify({ seed: "SS-20260902" })));
+  await page.reload();
+  await expect(page.locator("main")).toHaveCount(1);
+  await expect(page.locator("h1")).toHaveCount(1);
+  await expect(page.getByText("Your saved game could not be restored. A fresh run has started.")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "How many marks are on this card?" })).toBeVisible();
+  await expect(page.getByRole("radio")).toHaveCount(3);
+  expect(await page.evaluate(() => localStorage.getItem("sure-shot:active"))).toBeNull();
+  expect(errors).toEqual([]);
 });
 
-test("keyboard controls select, adjust confidence, and submit", async ({ page }) => {
+test("pattern recall keeps its target until requested in reduced motion", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/demo");
-  const answer = page.getByRole("radio").first();
-  await answer.focus();
-  await page.keyboard.press("Space");
-  await expect(answer).toHaveAttribute("aria-checked", "true");
+  await answerCurrentLevel(page, 1);
+  await page.waitForTimeout(50);
+  await expect(page.getByRole("img", { name: "Remember this pattern" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Hide pattern and choose an answer" })).toBeVisible();
+  await expect(page.getByRole("radio")).toHaveCount(0);
+  await page.getByRole("button", { name: "Hide pattern and choose an answer" }).click();
+  await expect(page.getByRole("radio")).toHaveCount(3);
+});
+
+test("spatial targets and answers have non-visual descriptions", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/demo");
+  await answerCurrentLevel(page, 1);
+  await answerCurrentLevel(page, 2);
+  await answerCurrentLevel(page, 3);
+  await expect(page.getByRole("img", { name: /Starting shape: a two by two shape with filled squares/ })).toBeVisible();
+  for (const name of ["Option A", "Option B", "Option C"])
+    await expect(page.getByRole("radio", { name: new RegExp(`${name} — a two by two shape with filled squares`) })).toBeVisible();
+});
+
+test("keyboard radio arrows move focus and selection, then range and submit work", async ({ page }) => {
+  await page.goto("/demo");
+  const first = page.getByRole("radio").first();
+  const second = page.getByRole("radio").nth(1);
+  await first.focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(second).toBeFocused();
+  await expect(second).toHaveAttribute("aria-checked", "true");
   const confidence = page.getByLabel("How sure are you?");
   await confidence.focus();
   await page.keyboard.press("ArrowRight");
@@ -151,6 +310,29 @@ test("keyboard controls select, adjust confidence, and submit", async ({ page })
   await lock.focus();
   await page.keyboard.press("Enter");
   await expect(page.locator(".feedback")).toBeVisible();
+});
+
+test("focus ring exceeds three-to-one contrast against chalk and paper surfaces", async ({ page }) => {
+  await page.goto("/demo");
+  await page.keyboard.press("Tab");
+  const colors = await page.locator(".skip").evaluate((link) => {
+    const style = getComputedStyle(link);
+    const values = style.outlineColor.match(/\d+/g)!.map(Number) as [number, number, number];
+    const background = style.backgroundColor.match(/\d+/g)!.map(Number) as [number, number, number];
+    return { values, background };
+  });
+  expect(contrast(colors.values, colors.background)).toBeGreaterThanOrEqual(3);
+  expect(contrast(colors.values, [245, 237, 220])).toBeGreaterThanOrEqual(3);
+});
+
+test("390px layout remains within the viewport at two-hundred-percent text", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await page.evaluate(() => document.documentElement.classList.add("text-zoom-200"));
+  await page.waitForTimeout(50);
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(0);
+  await expect(page.getByLabel("Main navigation").getByRole("link", { name: "Terms" })).toBeVisible();
 });
 
 test("mobile layout fits and visible controls meet touch target size", async ({ page }) => {
@@ -165,29 +347,37 @@ test("mobile layout fits and visible controls meet touch target size", async ({ 
   expect(sizes.every((size) => size.width >= 44 && size.height >= 44)).toBe(true);
 });
 
-test("results screen has no serious or critical accessibility violations", async ({ page }) => {
-  await completeRun(page);
+test("has no serious or critical accessibility violations on demo and results", async ({ page }) => {
+  await page.goto("/demo");
+  expect(await seriousAxeViolations(page)).toEqual([]);
+  await completeCurrentRun(page);
   expect(await seriousAxeViolations(page)).toEqual([]);
 });
 
-test("a loaded run remains playable when the network goes offline", async ({ page, context }) => {
-  await page.goto("/demo");
-  await context.setOffline(true);
-  await page.getByRole("radio").first().click();
-  await page.getByRole("button", { name: "Lock in answer and confidence" }).click();
-  await expect(page.locator(".feedback")).toBeVisible();
-  await context.setOffline(false);
-});
-
-test("public and fallback routes render without browser errors", async ({ page }) => {
+test("public routes have their own titles and unknown routes return a real designed 404", async ({ page }) => {
   const errors: string[] = [];
   page.on("console", (message) => { if (message.type() === "error") errors.push(message.text()); });
   page.on("pageerror", (error) => errors.push(error.message));
-  for (const [path, title] of [["/privacy", "Privacy — Sure Shot"], ["/terms", "Terms — Sure Shot"], ["/404", "Page not found — Sure Shot"], ["/not-a-real-route", "Page not found — Sure Shot"]]) {
-    await page.goto(path);
+  for (const [path, title, status] of [
+    ["/privacy", "Privacy — Sure Shot", 200],
+    ["/terms", "Terms — Sure Shot", 200],
+    ["/demo", "Demo — Sure Shot", 200],
+    ["/404", "Page not found — Sure Shot", 404],
+    ["/not-a-real-route", "Page not found — Sure Shot", 404],
+  ] as const) {
+    const response = await page.goto(path);
+    expect(response?.status()).toBe(status);
     await expect(page).toHaveTitle(title);
     await expect(page.locator("main")).toHaveCount(1);
     await expect(page.locator("h1")).toHaveCount(1);
   }
-  expect(errors).toEqual([]);
+  await expect(page.getByRole("heading", { name: "Page not found" })).toBeVisible();
+  expect(errors.filter((error) => !error.includes("server responded with a status of 404"))).toEqual([]);
+});
+
+test("response policy sends the static security headers", async ({ page }) => {
+  const response = await page.goto("/demo");
+  expect(response?.headers()["content-security-policy"]).toContain("frame-ancestors 'none'");
+  expect(response?.headers()["x-content-type-options"]).toBe("nosniff");
+  expect(response?.headers()["referrer-policy"]).toBe("strict-origin-when-cross-origin");
 });

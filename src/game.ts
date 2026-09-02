@@ -38,6 +38,62 @@ export type Run = {
 export const LEVEL_COUNT = 20;
 export const FRAME_MS = 1000 / 60;
 
+const kinds: ChallengeKind[] = [
+  "Visual estimate",
+  "Pattern recall",
+  "Timing",
+  "Spatial judgment",
+];
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isAnswer(value: unknown): value is Answer {
+  return (
+    isRecord(value) &&
+    typeof value.id === "string" &&
+    kinds.includes(value.kind as ChallengeKind) &&
+    typeof value.confidence === "number" &&
+    Number.isFinite(value.confidence) &&
+    value.confidence >= 50 &&
+    value.confidence <= 100 &&
+    typeof value.correct === "boolean" &&
+    typeof value.chosen === "string" &&
+    typeof value.answer === "string"
+  );
+}
+
+/**
+ * Only restore complete, internally consistent saved runs. This is deliberately
+ * stricter than a type cast: browser storage is user-editable and can outlive
+ * a released schema.
+ */
+export function isSavedRun(value: unknown): value is Run {
+  if (
+    !isRecord(value) ||
+    typeof value.round !== "number" ||
+    !Number.isInteger(value.round) ||
+    value.round < 0 ||
+    value.round > LEVEL_COUNT ||
+    !Array.isArray(value.answers) ||
+    !value.answers.every(isAnswer) ||
+    (value.phase !== "answer" && value.phase !== "feedback" && value.phase !== "results") ||
+    typeof value.startedAt !== "number" ||
+    !Number.isFinite(value.startedAt) ||
+    typeof value.seed !== "string" ||
+    !/^SS-\d{8}$/.test(value.seed)
+  ) {
+    return false;
+  }
+
+  if (value.phase === "answer")
+    return value.round < LEVEL_COUNT && value.answers.length === value.round;
+  if (value.phase === "feedback")
+    return value.round < LEVEL_COUNT && value.answers.length === value.round + 1;
+  return value.round === LEVEL_COUNT && value.answers.length === LEVEL_COUNT;
+}
+
 function hash(value: string) {
   let result = 2166136261;
   for (const char of value) {

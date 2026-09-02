@@ -4,6 +4,7 @@ import {
   calibration,
   fixedSteps,
   FRAME_MS,
+  isSavedRun,
   LEVEL_COUNT,
   newRun,
   roundsForSeed,
@@ -49,5 +50,16 @@ describe("Sure Shot deterministic game rules", () => {
     ];
     expect(calibration(answers)).toEqual([{ kind: "Visual estimate", confidence: 70, accuracy: 50, gap: 20 }]);
     expect(takeaway(answers)).toContain("20 points above");
+  });
+
+  it("rejects structurally incomplete saved runs before they can render", () => {
+    expect(isSavedRun({ seed: "SS-20260902" })).toBe(false);
+    expect(isSavedRun({
+      round: 0,
+      answers: [],
+      phase: "answer",
+      startedAt: 1,
+      seed: "SS-20260902",
+    })).toBe(true);
   });
 });

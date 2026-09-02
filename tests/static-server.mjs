@@ -19,19 +19,23 @@ createServer((request, response) => {
   const pathname = decodeURIComponent(
     new URL(request.url ?? "/", "http://127.0.0.1").pathname,
   );
-  const routeFile = pathname === "/404" ? "/404.html" : pathname;
-  const requested = resolve(root, `.${routeFile}`);
+  const requested = resolve(root, `.${pathname}`);
   const isSafeFile =
     requested.startsWith(`${root}/`) &&
     existsSync(requested) &&
     statSync(requested).isFile();
-  const file = isSafeFile ? requested : resolve(root, "index.html");
-  const status = pathname.startsWith("/assets/") && !isSafeFile ? 404 : 200;
+  const knownAppRoute = ["/", "/demo", "/privacy", "/terms"].includes(pathname);
+  const status = isSafeFile || knownAppRoute ? 200 : 404;
+  const file = isSafeFile
+    ? requested
+    : knownAppRoute
+      ? resolve(root, "index.html")
+      : resolve(root, "404.html");
   response.writeHead(status, {
     "Content-Type": types[extname(file)] ?? "application/octet-stream",
     "Content-Security-Policy": csp,
     "Referrer-Policy": "strict-origin-when-cross-origin",
     "X-Content-Type-Options": "nosniff",
   });
-  response.end(status === 404 ? "Not found" : readFileSync(file));
+  response.end(readFileSync(file));
 }).listen(4173, "127.0.0.1");
