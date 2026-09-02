@@ -1,0 +1,14 @@
+{
+  "url": "https://sure-shot.sociobot.in/demo",
+  "loadMs": 603,
+  "errors": [],
+  "a11y": {
+    "title": "Level 1 of 20 — Sure Shot",
+    "lang": "en",
+    "h1": 1,
+    "main": true,
+    "imgsMissingAlt": 0,
+    "buttonsUnlabeled": 0,
+    "textLength": 575
+  }
+}
