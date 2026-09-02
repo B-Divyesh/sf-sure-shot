@@ -1,49 +1,41 @@
-# Sure Shot handoff
+# Sure Shot repair handoff
 
-## What shipped
+## What changed
 
-Sure Shot is a local-first browser game with five daily visual rounds: two mark
-estimates, pattern recall, timing, and spatial rotation. Every round records an
-answer and a confidence setting before feedback. Results compare confidence and
-accuracy by challenge type and give one retry-free takeaway. The game has a
-fixed-step timer loop, pauses when the tab is hidden, saves active runs and
-settings locally, supports keyboard/pointer/touch, and includes timing assist.
+The repair fixes candidate `4e8c996def56a2a53e07149e6582d955b1f42d7c` without changing its browser-game or static-deployment class.
 
-`/demo` begins an isolated sample game immediately. Its data uses
-`demo:active`; real play uses `sure-shot:active`. The persistent demo banner can
-reset the sample or discard it before starting a real local game.
+- Replaced every runtime `style` attribute with CSP-safe rendering. Dot positions now come from checked-in `:nth-child` rules. Round and result bars use native `<progress>` elements styled by the bundled stylesheet.
+- Corrected the hero request from the nonexistent `/assets/sure-shot-hero.webp` to the emitted `/sure-shot-hero.webp` file.
+- Added a production-like local server that applies the deployed CSP during browser tests. The focused regression visits the landing page, checks the hero, completes all five rounds, reaches results, rejects any HTTP failure or browser error, and asserts that no `style` attributes exist.
+- Added keyboard submission, 390 px mobile fit and 44 px target, results-screen axe, and loaded-offline coverage.
+- Stopped answer selection from rebuilding the page and losing keyboard focus. Route and round changes now move focus deliberately. The pattern preview runs once instead of restarting every two seconds.
+- Isolated demo settings under `demo:settings`. Demo play no longer reads or writes real-play settings.
 
-The dithered print visual system and generated-art provenance are documented in
-`.factory/design.md`. The original hero was generated through the factory image
-deployment and compressed to `public/sure-shot-hero.webp` (123 KB). Its source
-and prompt sidecar are retained in `assets/src/`.
+## Local verification
 
-## Verification
-
-Commands run successfully:
+Run from a clean checkout with Node 22:
 
 ```bash
+npm ci
 npm test
-npx playwright test
 npm run build
+npm run test:browser
+npm run test:browser -- --grep '@claim:'
 ```
 
-Results: 3 deterministic core tests and 8 browser tests passed. The browser
-tests cover a complete demo run, restart, local-only storage/request behavior,
-persisted assist mode, free and account-free entry, console errors, and axe
-serious/critical violations.
+Evidence recorded on 2026-09-02:
 
-`/opt/fleet/lib/verify-url.sh http://127.0.0.1:4173/demo .factory/evidence`
-passed: HTTP 200, no console errors, one h1, main landmark, `lang="en"`, and
-no missing image alt text. Evidence is in `.factory/evidence/`.
+- `npm test`: 3 deterministic core tests passed.
+- Exact production build `npm run build`: passed; `dist/` contains the static artifact and deployment configuration.
+- `npm run test:browser`: 12/12 Chromium tests passed under the production CSP. The scripted run reaches “See how your confidence matched.”
+- Claim-only run: 6/6 listed claim tests passed.
+- `/opt/fleet/lib/verify-url.sh http://127.0.0.1:4173/demo .factory/evidence-repair`: HTTP 200, no console errors, one `<h1>`, `lang="en"`, `<main>`, and no missing alt text or unlabeled buttons.
+- Playwright axe integration: no serious or critical findings on round one or the end screen.
+- Lighthouse mobile: Performance 100, Accessibility 100, Best Practices 100, SEO 100; FCP 1.1 s, LCP 1.1 s, TBT 10 ms, CLS 0.
+- Initial bundles: JavaScript 15.9 KB raw / 6.1 KB gzip; CSS 10.7 KB raw / 3.2 KB gzip. Hero WebP: 125 KB.
 
-Lighthouse mobile run against `/demo`: Performance 95, Accessibility 100, Best
-Practices 100, SEO 100. Measured FCP 2.3 s, LCP 2.5 s, TBT 30 ms, CLS 0. The
-initial bundled JS is 5.98 KB gzip; CSS is 2.89 KB gzip.
+Reports and desktop/mobile screenshots are in `.factory/evidence-repair/`.
 
-## Known gaps and next steps
+## Deployment and known gaps
 
-There is intentionally no account, leaderboard, analytics, payment flow, or
-offline claim. A future version could add more daily round arrangements while
-keeping scores local. Deployment should publish `dist/` with the included
-`staticwebapp.config.json` headers and SPA fallback.
+Deployment remains the product-owned Azure Static Web App `sf-sure-shot`, published from `./dist` to `https://sure-shot.sociobot.in`. The application deliberately has no analytics, account, payment, online leaderboard, service worker, or offline-reload claim. A fully loaded run continues if the network drops.
