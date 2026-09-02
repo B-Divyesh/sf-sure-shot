@@ -260,108 +260,22 @@ nav a {
 }
 .dot-field {
   height: 230px;
-  position: relative;
   border: 2px solid var(--ink);
   background: var(--chalk);
   box-shadow: var(--shadow);
   overflow: hidden;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  align-content: space-evenly;
+  justify-items: center;
+  padding: 18px;
 }
 .dot-field i {
-  position: absolute;
   display: block;
   width: 14px;
   height: 14px;
   border-radius: 50%;
   background: var(--tomato);
-  transform: translate(-50%, -50%);
-}
-.dot-field i:nth-child(1) {
-  left: 8%;
-  top: 16%;
-}
-.dot-field i:nth-child(2) {
-  left: 24%;
-  top: 10%;
-}
-.dot-field i:nth-child(3) {
-  left: 43%;
-  top: 18%;
-}
-.dot-field i:nth-child(4) {
-  left: 61%;
-  top: 11%;
-}
-.dot-field i:nth-child(5) {
-  left: 82%;
-  top: 19%;
-}
-.dot-field i:nth-child(6) {
-  left: 16%;
-  top: 36%;
-}
-.dot-field i:nth-child(7) {
-  left: 34%;
-  top: 31%;
-}
-.dot-field i:nth-child(8) {
-  left: 54%;
-  top: 38%;
-}
-.dot-field i:nth-child(9) {
-  left: 72%;
-  top: 32%;
-}
-.dot-field i:nth-child(10) {
-  left: 91%;
-  top: 40%;
-}
-.dot-field i:nth-child(11) {
-  left: 7%;
-  top: 58%;
-}
-.dot-field i:nth-child(12) {
-  left: 26%;
-  top: 54%;
-}
-.dot-field i:nth-child(13) {
-  left: 46%;
-  top: 61%;
-}
-.dot-field i:nth-child(14) {
-  left: 64%;
-  top: 56%;
-}
-.dot-field i:nth-child(15) {
-  left: 84%;
-  top: 62%;
-}
-.dot-field i:nth-child(16) {
-  left: 17%;
-  top: 79%;
-}
-.dot-field i:nth-child(17) {
-  left: 36%;
-  top: 84%;
-}
-.dot-field i:nth-child(18) {
-  left: 55%;
-  top: 77%;
-}
-.dot-field i:nth-child(19) {
-  left: 75%;
-  top: 85%;
-}
-.dot-field i:nth-child(20) {
-  left: 93%;
-  top: 78%;
-}
-.dot-field i:nth-child(21) {
-  left: 67%;
-  top: 73%;
-}
-.dot-field i:nth-child(22) {
-  left: 28%;
-  top: 70%;
 }
 .dot-field i:nth-child(3n) {
   background: var(--moss);
@@ -428,6 +342,20 @@ footer p {
   margin: auto;
   padding: 46px 0 72px;
 }
+.game-first-read {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+  padding: 12px 0;
+  border-bottom: 2px solid var(--ink);
+}
+.game-first-read p {
+  max-width: 52ch;
+  margin: 0;
+  font-weight: 700;
+}
 .run-top {
   display: flex;
   justify-content: space-between;
@@ -474,6 +402,14 @@ footer p {
   min-height: 76px;
   box-shadow: none;
   justify-content: space-between;
+}
+.choice-pattern .pattern {
+  grid-template-columns: repeat(3, 15px);
+  gap: 3px;
+}
+.choice-pattern .pattern i {
+  height: 15px;
+  border-width: 1px;
 }
 .choice.selected {
   background: var(--moss);
@@ -766,6 +702,10 @@ input[type="range"] {
   }
   .choices {
     grid-template-columns: 1fr;
+  }
+  .game-first-read {
+    align-items: flex-start;
+    flex-direction: column;
   }
   .choice {
     min-height: 58px;

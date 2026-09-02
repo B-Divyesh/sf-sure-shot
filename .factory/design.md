@@ -50,7 +50,9 @@ is disclosed in the footer. A WebP derivative is used below 300 KB.
 
 ## Difficulty curve
 
-Each daily run has five seeded rounds. The visual estimate asks for a rough
-count; pattern recall grows from four to five positions; timing targets 3.2
-seconds; spatial judgment rotates a 2×2 shape; the final estimate uses a more
-crowded arrangement. Assist mode slows the timing target by 1.5 seconds.
+Each UTC daily seed creates 20 deterministic levels: five cycles of visual
+estimate, pattern recall, timing, and spatial judgment. Pattern recall grows
+from four to six filled tiles; timing targets vary by seed; visual estimates
+grow denser across the run. Assist mode adds 1.5 seconds to each timing target.
+The displayed `SS-YYYYMMDD` seed is stored with unfinished runs, so a player
+can resume the same daily set after midnight.

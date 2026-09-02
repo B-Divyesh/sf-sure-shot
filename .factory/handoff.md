@@ -1,42 +1,64 @@
-# Sure Shot verification handoff — FAIL
+# Sure Shot repair handoff
 
-**Candidate:** `d70495f1595ce0f30cad6df1faae453e66904b7d`
-**Live URL:** `https://sure-shot.sociobot.in`
-**Independent verdict (2026-09-02): FAIL — do not release.**
+## Repair completed
 
-The live static output exactly matches the candidate and its build/test/a11y/
-privacy performance checks mostly pass. The product nevertheless fails the
-browser-game acceptance contract:
+Repaired every release blocker recorded in `.factory/verification-2.md` for
+candidate `d70495f1595ce0f30cad6df1faae453e66904b7d`.
 
-1. **P0:** the pattern-recall round becomes an unanswerable choice among plain
-   “Pattern A/B/C” labels after its preview. No option pattern is rendered.
-2. **P1:** the advertised daily seed changes only its displayed date; every
-   play is the same five hard-coded rounds. There is no procedural daily set
-   or 20-level content set.
-3. **P1:** root is a landing/menu screen rather than active game play, contrary
-   to the required first captured game screen.
-4. **P1:** the required measured 60 FPS claim/test is absent.
-5. **P2:** automatic initial `h1` focus makes normal forward Tab skip the
-   header and skip link.
+- Pattern recall now previews a real 3×3 tile pattern, then renders three
+  distinct pictured pattern choices. Each choice has a non-colour accessible
+  description of its filled tiles. Browser regression coverage compares the
+  preview tiles to the rendered options and selects the matching diagram.
+- `roundsForSeed(seed)` now produces 20 deterministic levels from the displayed
+  UTC `SS-YYYYMMDD` seed. A run stores its seed, so an unfinished daily game
+  remains unchanged after midnight. Unit coverage checks same-seed equality,
+  next-day variation, unique 20-level content, and pattern-option uniqueness.
+- `/` now opens directly on an active level-one game, with a compact plain
+  explanation and one-click **Try it with sample data** action. `/demo` remains
+  the isolated `demo:*` sandbox with its persistent reset/start-real banner.
+- The fixed timestep now guards against floating-point undercounting. The
+  deterministic unit trace produces exactly 60 steps in one second. A 390px
+  Chromium requestAnimationFrame sample measured **60.006 FPS** over 60 frame
+  intervals; the claim regression accepts a conservative ≥55 FPS margin.
+- Initial load no longer autofocuses the `h1`. The root keyboard regression
+  verifies the first forward Tab reaches the skip link before the header/game.
 
-Full evidence, exact commands, passed checks, hashes, and repair steps are in
-`.factory/verification-2.md`.
+## Verification
 
-## Verification commands
+Run from a clean checkout:
 
-```bash
-npm ci
-npx playwright test --grep @claim:complete-run
-npx playwright test --grep @claim:restart-run
-npx playwright test --grep @claim:local-scores
-npx playwright test --grep @claim:assist-persist
-npx playwright test --grep @claim:free-play
-npx playwright test --grep @claim:no-account
-npm test
-npm run build
-npm run test:browser
-```
+    npm ci
+    npm test
+    npx playwright test --grep '@claim:'
+    npm run test:browser
+    npm run build
 
-All listed commands passed for this candidate, but they do not cover the
-release-blocking gameplay/content failures above. Product code was not changed
-as part of independent verification.
+Evidence from this repair:
+
+- `npm ci`: 59 packages, 0 vulnerabilities.
+- `npm test`: 5/5 deterministic rule tests passed.
+- `npx playwright test --grep '@claim:'`: 8/8 claims passed.
+- `npm run test:browser`: 16/16 Chromium tests passed, including desktop,
+  390px mobile, keyboard, privacy/offline, routes, and axe serious/critical
+  checks on demo and results.
+- `npm run build`: passed; production JS is 16.10 kB (6.25 kB gzip) and CSS
+  is 10.23 kB (3.06 kB gzip).
+- `/opt/fleet/lib/verify-url.sh` against the production-like local static
+  server passed for `/demo` and `/`: `lang=en`, one `h1`, one `main`, no
+  missing alt text or unnamed buttons, and no console/page errors. Screenshots
+  and JSON reports are in `.factory/evidence-repair-2/` and
+  `.factory/evidence-repair-2-root/`.
+- The external `@axe-core/cli` binary could not start its Selenium Chrome in
+  this container. The shipped Playwright axe-core integration ran instead and
+  passed with no serious or critical violations on both demo and results.
+
+## Deployment
+
+Static artifact: `dist/`. Deploy it to the existing `sf-sure-shot` Static Web
+App in resource group `sociobot`; `staticwebapp.config.json` supplies the SPA
+fallback, CSP, referrer policy, nosniff header, and immutable asset cache rule.
+
+## Known gaps
+
+None. This is a local-first static game: it has no accounts, analytics,
+payments, service worker, or external runtime requests.

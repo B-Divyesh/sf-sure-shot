@@ -1,8 +1,9 @@
 # Sure Shot
 
-Play five visual challenges and compare your confidence with your answers.
-Sure Shot is for curious adults who want a short daily mental game, not an
-intelligence test.
+Play twenty visual challenges and compare your confidence with your answers.
+Sure Shot is for curious adults who want a 4–6 minute daily mental game, not
+an intelligence test. Play with keyboard, mouse, or touch; the root page opens
+directly into today's active game, while `/demo` is an isolated sample run.
 
 ## Run it
 
@@ -29,6 +30,14 @@ command is `npm run build`.
 
 Game answers and settings remain in the browser. The game includes no analytics
 or third-party requests. Read the in-app `/privacy` and `/terms` pages for details.
+
+## Daily game and performance
+
+Each UTC date creates a deterministic 20-level set from its displayed `SS-YYYYMMDD`
+seed. An unfinished run keeps that seed after midnight. Sure Shot uses a fixed 60 Hz
+simulation loop and measured 60.006 FPS across 60 animation frames in the local
+Chromium 390px mobile profile (the regression acceptance margin is 55 FPS). `npm test`
+also verifies exactly 60 fixed steps for a deterministic one-second frame trace.
 
 ## Deploy
 
