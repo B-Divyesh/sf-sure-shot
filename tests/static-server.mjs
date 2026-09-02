@@ -19,7 +19,8 @@ createServer((request, response) => {
   const pathname = decodeURIComponent(
     new URL(request.url ?? "/", "http://127.0.0.1").pathname,
   );
-  const requested = resolve(root, `.${pathname}`);
+  const routeFile = pathname === "/404" ? "/404.html" : pathname;
+  const requested = resolve(root, `.${routeFile}`);
   const isSafeFile =
     requested.startsWith(`${root}/`) &&
     existsSync(requested) &&

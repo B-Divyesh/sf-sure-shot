@@ -242,3 +242,26 @@ test("a loaded run remains playable when the network goes offline", async ({
   ).toBeVisible();
   await context.setOffline(false);
 });
+
+test("public and fallback routes render without browser errors", async ({
+  page,
+}) => {
+  const errors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  page.on("pageerror", (error) => errors.push(error.message));
+  const routes = [
+    ["/privacy", "Privacy — Sure Shot"],
+    ["/terms", "Terms — Sure Shot"],
+    ["/404", "Page not found — Sure Shot"],
+    ["/not-a-real-route", "Page not found — Sure Shot"],
+  ];
+  for (const [path, title] of routes) {
+    await page.goto(path);
+    await expect(page).toHaveTitle(title);
+    await expect(page.locator("main")).toHaveCount(1);
+    await expect(page.locator("h1")).toHaveCount(1);
+  }
+  expect(errors).toEqual([]);
+});
