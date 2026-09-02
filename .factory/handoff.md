@@ -51,6 +51,11 @@ Evidence from this repair:
 - The external `@axe-core/cli` binary could not start its Selenium Chrome in
   this container. The shipped Playwright axe-core integration ran instead and
   passed with no serious or critical violations on both demo and results.
+- Lighthouse 13 could not attach to the preinstalled Playwright Chromium in
+  this container, even with its executable path and no-sandbox flags. The
+  browser checks above cover the same load, layout, accessibility, console,
+  and size gates; the deployment should receive the normal fleet Lighthouse
+  pass during re-verification.
 
 ## Deployment
 
