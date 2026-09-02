@@ -54,8 +54,16 @@ Evidence from this repair:
 
 ## Deployment
 
-Static artifact: `dist/`. Deploy it to the existing `sf-sure-shot` Static Web
-App in resource group `sociobot`; `staticwebapp.config.json` supplies the SPA
+Committed and pushed repair `ee4e28f` (`Repair daily game content and
+accessibility`). Deployed `dist/` to the existing `sf-sure-shot` Static Web
+App in resource group `sociobot` on 2026-09-02. The CLI reported successful
+production deployment at `https://purple-coast-006e30710.3.azurestaticapps.net`.
+
+Live identity/smoke verification passed at `https://sure-shot.sociobot.in/`:
+the page serves `index-DRn0yAHM.js` and `index-D3_FpxwI.css`, renders title
+`Level 1 of 20 — Sure Shot`, has no console errors, and keeps the required CSP,
+HSTS, nosniff, and referrer-policy headers. Evidence is in
+`.factory/evidence-live-repair/`. `staticwebapp.config.json` supplies the SPA
 fallback, CSP, referrer policy, nosniff header, and immutable asset cache rule.
 
 ## Known gaps
