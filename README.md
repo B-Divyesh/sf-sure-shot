@@ -12,7 +12,7 @@ npm run dev
 ```
 
 Open `http://localhost:5173`. Open `/demo` for the isolated sample game. Demo
-state uses `demo:active` in localStorage; a real game uses `sure-shot:active`.
+state uses `demo:*` keys in localStorage; a real game uses `sure-shot:*` keys.
 
 ## Test and build
 
