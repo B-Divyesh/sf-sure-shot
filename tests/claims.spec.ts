@@ -4,7 +4,7 @@ import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
 const axeSource = readFileSync(require.resolve("axe-core/axe.min.js"), "utf8");
-const levelText = /Level \d+ of 20/;
+const challengeText = /Challenge \d+ of 20/;
 
 type Page = import("@playwright/test").Page;
 
@@ -24,7 +24,7 @@ async function answerCurrentLevel(page: Page, level: number) {
 async function completeCurrentRun(page: Page) {
   await page.emulateMedia({ reducedMotion: "reduce" });
   for (let level = 1; level <= 20; level++) {
-    await expect(page.getByText(levelText).first()).toBeVisible();
+    await expect(page.getByText(challengeText).first()).toBeVisible();
     await answerCurrentLevel(page, level);
   }
 }
@@ -58,7 +58,7 @@ async function storeSeededRun(page: Page, seed: string) {
 async function playAndDescribeTwentyLevels(page: Page) {
   const sequence: string[] = [];
   for (let level = 1; level <= 20; level++) {
-    await expect(page.getByText(levelText).first()).toBeVisible();
+    await expect(page.getByText(challengeText).first()).toBeVisible();
     sequence.push(await page.locator(".game-screen").evaluate((screen) => {
       const top = screen.querySelector(".run-top")?.textContent?.trim() ?? "";
       const prompt = screen.querySelector(".round-question")?.textContent?.trim() ?? "";
@@ -87,16 +87,16 @@ function contrast(first: [number, number, number], second: [number, number, numb
   return (lighter + 0.05) / (darker + 0.05);
 }
 
-test("@claim:complete-run demo reaches the real calibration screen", async ({ page }) => {
+test("@claim:complete-game demo reaches the real calibration screen", async ({ page }) => {
   await completeRun(page);
   await expect(page.getByRole("heading", { name: "See how your confidence matched" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Confidence by challenge type" })).toBeVisible();
 });
 
-test("@claim:restart-run a practice run resets level, answers, and phase", async ({ page }) => {
+test("@claim:restart-game a practice game resets challenge, answers, and phase", async ({ page }) => {
   await completeRun(page);
-  await page.getByRole("button", { name: "Play a fresh practice run" }).click();
-  await expect(page.getByText("Level 1 of 20 · Visual estimate")).toBeVisible();
+  await page.getByRole("button", { name: "Play a fresh practice game" }).click();
+  await expect(page.getByText("Challenge 1 of 20 · Visual estimate")).toBeVisible();
   const restarted = await page.evaluate(() => JSON.parse(localStorage.getItem("demo:active")!));
   expect(restarted).toMatchObject({
     round: 0,
@@ -105,7 +105,7 @@ test("@claim:restart-run a practice run resets level, answers, and phase", async
   });
 });
 
-test("@claim:daily-levels two UTC date seeds create distinct twenty-level games", async ({ page }) => {
+test("@claim:daily-challenges two UTC date codes create distinct twenty-challenge games", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/");
   await storeSeededRun(page, "SS-20260902");
@@ -123,14 +123,14 @@ test("@claim:daily-levels two UTC date seeds create distinct twenty-level games"
   expect(first).not.toEqual(second);
 });
 
-test("@claim:session-length the measured pacing budget is four to six minutes", async ({ page }) => {
+test("@claim:game-length the measured pacing budget is four to six minutes", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByText("20 levels · 4–6 minutes")).toBeVisible();
+  await expect(page.getByText("20 challenges · 4–6 minutes")).toBeVisible();
   await expect(page.locator("progress.round-progress")).toHaveAttribute("max", "20");
   await page.emulateMedia({ reducedMotion: "reduce" });
   const measuredLevelSeconds: number[] = [];
   for (let level = 1; level <= 20; level++) {
-    await expect(page.getByText(levelText).first()).toBeVisible();
+    await expect(page.getByText(challengeText).first()).toBeVisible();
     measuredLevelSeconds.push(Number(await page.locator(".game-screen").getAttribute("data-planned-seconds")));
     await answerCurrentLevel(page, level);
   }
@@ -139,7 +139,7 @@ test("@claim:session-length the measured pacing budget is four to six minutes", 
   const measuredSessionSeconds = measuredLevelSeconds.reduce((sum, seconds) => sum + seconds, 0);
   expect(measuredSessionSeconds).toBeGreaterThanOrEqual(4 * 60 - 1);
   expect(measuredSessionSeconds).toBeLessThanOrEqual(6 * 60 + 1);
-  await expect(page.getByText("20 levels complete")).toBeVisible();
+  await expect(page.getByText("20 challenges complete")).toBeVisible();
 });
 
 test("@claim:input-methods answer controls work with mouse, keyboard, and touch", async ({ page, browser }) => {
@@ -284,15 +284,44 @@ test("@claim:fps-60 measures at least 55 FPS in the Chromium mobile profile", as
   expect(fps).toBeGreaterThanOrEqual(55);
 });
 
+test("@claim:daily-result-copy copies a daily score and calibration summary without answers", async ({ page, context }) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"], {
+    origin: "http://127.0.0.1:4173",
+  });
+  await completeRun(page);
+  await page.getByRole("button", { name: "Copy daily result" }).click();
+  await expect(page.getByRole("status")).toHaveText("Daily result copied without answers.");
+  const copied = await page.evaluate(() => navigator.clipboard.readText());
+  expect(copied).toMatch(/^Sure Shot SS-\d{8}\nScore: \d+\/20\n/m);
+  for (const kind of ["Visual estimate", "Pattern recall", "Timing", "Spatial judgment"])
+    expect(copied).toContain(`${kind}: confidence `);
+  expect(copied).toMatch(/accuracy \d+%, gap [+-]\d+ points/);
+  expect(copied).not.toMatch(/Pattern [ABC]|Option [ABC]|The answer was/i);
+});
+
 test("root names the audience, first action, and three plain facts while showing the active game", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Calibrate confidence with visual challenges" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Compare your confidence with your answers" })).toBeVisible();
   await expect(page.getByText("For curious adults who want a daily mental game that compares confidence with answers.")).toBeVisible();
   await expect(page.getByRole("button", { name: "Try it with sample data" })).toBeVisible();
   await expect(page.locator(".game-facts li")).toHaveCount(3);
+  await expect(page.locator(".hero-art img")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "How to play" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "What Sure Shot does not do" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "How many marks are on this card?" })).toBeVisible();
   await page.keyboard.press("Tab");
   await expect(page.locator(".skip")).toBeFocused();
+});
+
+test("demo keeps the required sample-data label and legal pages use an accurate skip link", async ({ page }) => {
+  await page.goto("/demo");
+  await expect(page.getByText("Demo — sample data, nothing is saved")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Reset demo" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Start for real" })).toBeVisible();
+  for (const path of ["/privacy", "/terms"]) {
+    await page.goto(path);
+    await expect(page.locator(".skip")).toHaveText("Skip to main content");
+  }
 });
 
 test("a structurally malformed saved run recovers to a fresh usable game", async ({ page }) => {
@@ -303,7 +332,7 @@ test("a structurally malformed saved run recovers to a fresh usable game", async
   await page.reload();
   await expect(page.locator("main")).toHaveCount(1);
   await expect(page.locator("h1")).toHaveCount(1);
-  await expect(page.getByText("Your saved game could not be restored. A fresh run has started.")).toBeVisible();
+  await expect(page.getByText("Your saved game could not be restored. A fresh game has started.")).toBeVisible();
   await expect(page.getByRole("heading", { name: "How many marks are on this card?" })).toBeVisible();
   await expect(page.getByRole("radio")).toHaveCount(3);
   expect(await page.evaluate(() => localStorage.getItem("sure-shot:active"))).toBeNull();
@@ -402,7 +431,7 @@ test("has no serious or critical accessibility violations on demo and results", 
   expect(await seriousAxeViolations(page)).toEqual([]);
 });
 
-test("public routes have their own titles and unknown routes return a real designed 404", async ({ page }) => {
+test("@claim:static-routing known app routes open and unknown routes return a real designed 404", async ({ page }) => {
   const errors: string[] = [];
   page.on("console", (message) => { if (message.type() === "error") errors.push(message.text()); });
   page.on("pageerror", (error) => errors.push(error.message));
@@ -421,6 +450,66 @@ test("public routes have their own titles and unknown routes return a real desig
   }
   await expect(page.getByRole("heading", { name: "Page not found" })).toBeVisible();
   expect(errors.filter((error) => !error.includes("server responded with a status of 404"))).toEqual([]);
+});
+
+test("each application route updates its social metadata", async ({ page }) => {
+  for (const [path, title, description] of [
+    ["/", "Sure Shot — Compare confidence with answers", "Play twenty visual challenges and compare your confidence with your answers."],
+    ["/demo", "Demo — Sure Shot", "Try a sample Sure Shot game without changing your daily game."],
+    ["/privacy", "Privacy — Sure Shot", "Read how Sure Shot keeps game data in your browser."],
+    ["/terms", "Terms — Sure Shot", "Read the terms for the Sure Shot entertainment game."],
+  ] as const) {
+    await page.goto(path);
+    await expect(page).toHaveTitle(title);
+    const metadata = await page.evaluate(() => ({
+      description: document.querySelector('meta[name="description"]')?.getAttribute("content"),
+      ogTitle: document.querySelector('meta[property="og:title"]')?.getAttribute("content"),
+      ogDescription: document.querySelector('meta[property="og:description"]')?.getAttribute("content"),
+      ogUrl: document.querySelector('meta[property="og:url"]')?.getAttribute("content"),
+      twitterTitle: document.querySelector('meta[name="twitter:title"]')?.getAttribute("content"),
+      twitterDescription: document.querySelector('meta[name="twitter:description"]')?.getAttribute("content"),
+      twitterImage: document.querySelector('meta[name="twitter:image"]')?.getAttribute("content"),
+    }));
+    expect(metadata.description).toBe(description);
+    expect(metadata.ogTitle).toBe(title);
+    expect(metadata.ogDescription).toBe(description);
+    expect(metadata.ogUrl).toBe(`https://sure-shot.sociobot.in${path}`);
+    expect(metadata.twitterTitle).toBe(title);
+    expect(metadata.twitterDescription).toBe(description);
+    expect(metadata.twitterImage).toBe("https://sure-shot.sociobot.in/social-card.webp");
+  }
+});
+
+test("the static 404 has route metadata and the standard footer destinations", async ({ page }) => {
+  await page.goto("/404");
+  await expect(page).toHaveTitle("Page not found — Sure Shot");
+  const metadata = await page.evaluate(() => ({
+    description: document.querySelector('meta[name="description"]')?.getAttribute("content"),
+    ogTitle: document.querySelector('meta[property="og:title"]')?.getAttribute("content"),
+    twitterTitle: document.querySelector('meta[name="twitter:title"]')?.getAttribute("content"),
+    twitterImage: document.querySelector('meta[name="twitter:image"]')?.getAttribute("content"),
+  }));
+  expect(metadata).toEqual({
+    description: "Return to Sure Shot to play today's visual challenges.",
+    ogTitle: "Page not found — Sure Shot",
+    twitterTitle: "Page not found — Sure Shot",
+    twitterImage: "https://sure-shot.sociobot.in/social-card.webp",
+  });
+  for (const name of ["Privacy", "Terms"])
+    await expect(page.locator("footer").getByRole("link", { name })).toBeVisible();
+  await expect(page.locator("footer")).toContainText("Built by Param Factory · v1.3");
+});
+
+test("denied clipboard access gives a recovery message", async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText: () => Promise.reject(new DOMException("Denied", "NotAllowedError")) },
+    });
+  });
+  await completeRun(page);
+  await page.getByRole("button", { name: "Copy daily result" }).click();
+  await expect(page.getByRole("status")).toHaveText("We could not copy your daily result. Try again or copy the summary from this page.");
 });
 
 test("response policy sends the static security headers", async ({ page }) => {

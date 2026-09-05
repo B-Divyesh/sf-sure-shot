@@ -1,14 +1,14 @@
 # Sure Shot
 
-Sure Shot is a 20-level, 4–6 minute daily mental game for curious adults who
-want to compare confidence with answers. Play with a keyboard, mouse, or touch.
-The duration uses a measured per-level pacing budget for reading, choosing,
-setting confidence, and checking feedback.
+Sure Shot is a 20-challenge daily game for curious adults who want to compare
+confidence with answers. Play with a keyboard, mouse, or touch. A full game is
+planned for four to six minutes. That estimate allows 12–18 seconds for each
+challenge.
 
-Each UTC date creates a deterministic daily set from its displayed
-`SS-YYYYMMDD` seed. An unfinished game keeps that seed after midnight. Timing
-assist adds exactly 1.5 seconds to each timing target. The 390px Chromium
-regression accepts at least 55 FPS across 60 animation frames.
+Each UTC date generates the same 20 challenges from the daily code shown in
+the game. An unfinished game keeps that code after midnight. Timing assist adds
+exactly 1.5 seconds to each timing target. The mobile browser test measures 60
+frames and requires at least 55 frames per second at 390 px.
 
 ## Run
 
@@ -17,20 +17,22 @@ npm ci
 npm run dev
 ```
 
-Open `http://localhost:5173`. The root opens today’s active game. Open `/demo`
-for the isolated sample game; its data uses `demo:*` localStorage keys and
-never changes `sure-shot:*` real-game keys.
+Open `http://localhost:5173`. Open the home page to play today’s game. Open
+`/demo` for a sample game. Demo progress uses separate browser storage and
+cannot overwrite your daily game.
 
 ## Test and build
 
 ```bash
 npm test
+npm run typecheck
+npm run lint
 npx playwright test
 npm run build
 ```
 
-Run every exact command in `.factory/claims.json` before release. The static
-production files are written to `dist/` by `npm run build`.
+Run every exact command in `.factory/claims.json` before release. `npm run
+build` writes static production files to `dist/`.
 
 ## Privacy and scope
 
@@ -43,6 +45,5 @@ details.
 ## Deploy
 
 Deploy `dist/` as a static site. `staticwebapp.config.json` rewrites only the
-known app routes, returns the designed `/404.html` page with HTTP 404 for
-unknown routes, and provides cache and security headers for Azure Static Web
-Apps.
+known app routes. Unknown routes return the designed Page not found page. Use
+the config file when deploying to Azure Static Web Apps.

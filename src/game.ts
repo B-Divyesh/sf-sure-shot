@@ -276,7 +276,7 @@ export function takeaway(answers: Answer[]) {
   const averageConfidence = Math.round(answers.reduce((number, answer) => number + answer.confidence, 0) / answers.length);
   const accuracy = Math.round((answers.filter((answer) => answer.correct).length / answers.length) * 100);
   const gap = averageConfidence - accuracy;
-  if (gap > 12) return `Your confidence ran ${gap} points above your answers. On the next run, pause before choosing a high number.`;
+  if (gap > 12) return `Your confidence ran ${gap} points above your answers. In the next game, pause before choosing a high number.`;
   if (gap < -12) return `Your confidence ran ${Math.abs(gap)} points below your answers. Give a strong first hunch more credit.`;
   return "Your confidence stayed close to your answers. Keep naming what makes you sure.";
 }

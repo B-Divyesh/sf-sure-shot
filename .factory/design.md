@@ -24,8 +24,9 @@ paper palette is deliberate: it reads like a daily printed game card.
 
 Headlines use Georgia (a sturdy editorial serif), and interface copy uses the
 local system sans-serif stack. The 8px scale sets all gaps. A wide asymmetric
-hero art panel balances a narrow task panel; at phone width these stack with the
-task first. Buttons have square-ish corners, strong outlines, and 44px targets.
+hero art panel balances a narrow task panel on larger screens. At phone width,
+the art becomes a small inset so the active challenge stays on the first screen.
+Buttons have square-ish corners, strong outlines, and 44px targets.
 
 ## Interaction and motion
 
@@ -50,9 +51,9 @@ is disclosed in the footer. A WebP derivative is used below 300 KB.
 
 ## Difficulty curve
 
-Each UTC daily seed creates 20 deterministic levels: five cycles of visual
+Each UTC daily code creates 20 deterministic challenges: five cycles of visual
 estimate, pattern recall, timing, and spatial judgment. Pattern recall grows
-from four to six filled tiles; timing targets vary by seed; visual estimates
-grow denser across the run. Assist mode adds 1.5 seconds to each timing target.
-The displayed `SS-YYYYMMDD` seed is stored with unfinished runs, so a player
+from four to six filled tiles; timing targets vary by code; visual estimates
+grow denser across the game. Assist mode adds 1.5 seconds to each timing target.
+The displayed `SS-YYYYMMDD` code is stored with unfinished games, so a player
 can resume the same daily set after midnight.
