@@ -8,7 +8,8 @@ F-6-1 at its cause. The `build-output` claim now uses Vitest's supported
 outcome-based: it runs the production build and verifies the required
 deployable files in `dist/`.
 
-Implementation: `dd6c3c4d0ad6e558a08a656592907ed8ec7fb17e`.
+Implementation: `dd6c3c4d0ad6e558a08a656592907ed8ec7fb17e`. Repair report:
+`dc9c02e18ac88545e4e3ec0fc24265587cfe6b27`.
 
 ## What changed
 
