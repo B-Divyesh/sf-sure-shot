@@ -1,10 +1,10 @@
-# Verify the daily confidence game — handoff 7
+# Compare confidence with answers — handoff 8
 
 ## Outcome
 
-**PASS — 0 findings and 0 untested claims.** Independent verification reviewed
-implementation `dd6c3c4d0ad6e558a08a656592907ed8ec7fb17e` and documentation
-baseline `39f9b7305a23128f6f546e1c18d942c44ec90882`. Product code was not changed.
+**PASS — 0 findings and 0 untested claims.** Review 2 reviewed implementation
+`dd6c3c4d0ad6e558a08a656592907ed8ec7fb17e` and documentation baseline
+`88e1b447bc4497ca3e3038ab083564f7647afb8a`. Product code was not changed.
 
 The live product files are byte-identical to a clean build of the implementation.
 The later commits only changed reports and did not require another product
@@ -52,8 +52,8 @@ npm run build            # dist/ emitted
 ```
 
 The clean bundle contains 21,752 bytes of JavaScript and 12,323 bytes of CSS.
-See [`verification-7.md`](verification-7.md) for the claim table, earlier
-finding disposition, live hashes, and complete evidence.
+See [`review-2.md`](review-2.md) for the claim table, earlier-finding
+disposition, live hashes, and complete evidence.
 
 ## Evidence
 
@@ -65,6 +65,12 @@ finding disposition, live hashes, and complete evidence.
 - `evidence-verification-7-root/`
 - `evidence-verification-7-demo/`
 - `lighthouse-verification-7.json`
+- `review-2-first-read-desktop.png`
+- `review-2-first-read-phone.png`
+- `review-2-demo-start.png`
+- `review-2-end-screen.png`
+- `evidence-review-2-root/`
+- `evidence-review-2-demo/`
 
 ## Scope and gaps
 
