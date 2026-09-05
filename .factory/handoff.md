@@ -1,96 +1,75 @@
-# Compare confidence with visual challenges — handoff 7
+# Verify the daily confidence game — handoff 7
 
 ## Outcome
 
-**PASS — no findings remain.** This repair fixes verification 6 finding
-F-6-1 at its cause. The `build-output` claim now uses Vitest's supported
-`--testNamePattern` option. Its existing tagged regression test is
-outcome-based: it runs the production build and verifies the required
-deployable files in `dist/`.
+**PASS — 0 findings and 0 untested claims.** Independent verification reviewed
+implementation `dd6c3c4d0ad6e558a08a656592907ed8ec7fb17e` and documentation
+baseline `39f9b7305a23128f6f546e1c18d942c44ec90882`. Product code was not changed.
 
-Implementation: `dd6c3c4d0ad6e558a08a656592907ed8ec7fb17e`. Repair report:
-`dc9c02e18ac88545e4e3ec0fc24265587cfe6b27`.
+The live product files are byte-identical to a clean build of the implementation.
+The later commits only changed reports and did not require another product
+image.
 
-## What changed
+## What was verified
 
-- Changed the one `build-output` command in `.factory/claims.json` from the
-  unsupported `--grep` to `--testNamePattern @claim:build-output`.
-- Kept the game, published copy, product scope, storage model, and shipped
-  asset bundle unchanged.
-- Copied the verb-first catalog description to
-  `/work/.evidence/catalog-description.txt`.
+- Fresh 1440×900 desktop and 390×844 touch browsers identified the job,
+  audience, and first action before scrolling. Active Challenge 1 was visible.
+- The one-click sample opened populated play with the exact persistent demo
+  label. Answering and resetting it left seeded real-game data unchanged.
+- A full 20-challenge live run reached a populated 3/20 completed-loss result,
+  four calibration rows, a takeaway, explanation, spoiler-free copy, and clean
+  restart.
+- Keyboard, touch, pointer, range boundaries, invalid storage, refresh resume,
+  hidden-tab timing pause, reduced motion, loaded-offline play, browser history,
+  and route focus worked.
+- `/`, `/demo`, `/privacy`, and `/terms` returned 200. `/404` and an unknown
+  address returned the designed HTTP 404.
+- Axe found zero violations on all six app and error routes. The factory URL
+  verifier passed `/` and `/demo` without console errors.
+- The live full run made only same-origin, payload-free GET requests for static
+  files. No backend, account, payment, analytics, multiplayer, or external
+  integration exists.
+- Lighthouse scored 100 for Performance, Accessibility, Best Practices, and
+  SEO. LCP was 824 ms, TBT 23 ms, and CLS 0. The live phone measured 60 FPS.
 
-## Verification
+## Clean verification
 
-From a separate clean clone at the implementation SHA, `npm ci` completed
-with 141 packages and no reported vulnerabilities. All 18 exact commands in
-`.factory/claims.json` passed individually, including:
+A separate checkout at the implementation SHA ran `npm ci`. All 18 exact claim
+commands passed, including the repaired command:
 
 ```bash
 npm test -- --testNamePattern @claim:build-output
 ```
 
-That command ran one matching test. The test executed `npm run build` and
-checked `dist/index.html`, `dist/404.html`, the deployment config, robots,
-and sitemap outputs.
-
-The repository gates also passed:
+The broader gates also passed:
 
 ```bash
 npm test                 # 9 passed
 npm run typecheck
 npm run lint
 npx playwright test      # 31 passed
-npm run build            # dist/ emitted; 21.75 kB JS, 12.32 kB CSS
+npm run build            # dist/ emitted
 ```
 
-The `test-results/` artifact recorded the full browser suite as `passed` and
-was removed afterward.
+The clean bundle contains 21,752 bytes of JavaScript and 12,323 bytes of CSS.
+See [`verification-7.md`](verification-7.md) for the claim table, earlier
+finding disposition, live hashes, and complete evidence.
 
-## HTTPS check and game run
+## Evidence
 
-`dd6c3c4` was pushed to `origin/main`. No repository deployment wrapper is
-configured. This repair affects the factory verification manifest only, which
-is not part of the Vite production bundle, so a product-image change is not
-expected. The HTTPS product was checked cold after the push.
+- `verification-7-first-read-desktop.png`
+- `verification-7-first-read-phone.png`
+- `verification-7-demo-start.png`
+- `verification-7-end-screen.png`
+- `verification-7-404-phone.png`
+- `evidence-verification-7-root/`
+- `evidence-verification-7-demo/`
+- `lighthouse-verification-7.json`
 
-- `/`, `/demo`, `/privacy`, and `/terms` returned 200. `/404` and an unknown
-  address returned the designed page with HTTP 404.
-- Fresh 1440×900 desktop and 390×844 touch contexts stated the job as
-  **Compare your confidence with your answers**, named curious adults as the
-  audience, and offered **Try it with sample data** before scrolling.
-- At 390×844 the active challenge strip began at 665 px and its prompt at
-  777 px, so active play was visible on the first screen.
-- The sample action opened a populated visual-estimate challenge. The
-  persistent banner read **Demo — sample data, nothing is saved**. An answer,
-  feedback, and **Reset demo** left a seeded real-game value unchanged. Reset
-  restored `{ round: 0, answers: [], phase: "answer" }`.
-- A deterministic 20-challenge demo run reached the real result screen with a
-  3/20 score and four populated calibration rows. This is a completed loss
-  result, not a mocked end screen.
-- No browser console or page errors occurred. Playwright axe checks found no
-  serious or critical violations on `/`, `/demo`, `/privacy`, `/terms`,
-  `/404`, or an unknown route.
-- Live response headers included the self-only CSP, HSTS, `nosniff`, and the
-  strict-origin referrer policy. Requests and storage behavior remain covered
-  by the passing `local-scores` and `no-server-data` claims.
+## Scope and gaps
 
-## Earlier history
+Sure Shot is a static, local-first entertainment game. Backend isolation,
+SQLite restart persistence, health, 429 responses, `Retry-After`, online
+multiplayer, PWA update, and installed-consumer checks do not apply.
 
-The earlier review and verification records were read before this repair.
-Their pattern choices, daily challenge variation, visible active game,
-first-read audience, accessible visual alternatives, malformed-storage
-recovery, route metadata, touch targets, duration measurement, no-server-data
-proof, static 404, design, demo wording, result sharing, and copy findings
-remain fixed. Verification 6 was the only outstanding finding, and its exact
-claim command now passes from the clean clone.
-
-## Scope and known gaps
-
-Sure Shot is a static, local-first entertainment game. It has no backend,
-account, payment, analytics, multiplayer, service worker, external AI, or
-third-party requests. Backend isolation, SQLite restart, rate limiting,
-PWA-update, and installed-consumer checks do not apply. There are no known
-remaining product gaps for this repair.
-
-See [`verification-7.md`](verification-7.md) for the complete repair record.
+No known gaps remain.
