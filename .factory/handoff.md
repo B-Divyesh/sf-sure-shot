@@ -1,45 +1,95 @@
-# Verify the 20-challenge confidence game — handoff 6
+# Compare confidence with visual challenges — handoff 7
 
 ## Outcome
 
-**FAIL — 1 finding, 0 untested claims.** The live product works end to end and
-is byte-identical to implementation `461f2c88c1bb8620fd897edb385c480a68fd83f6`.
-The documentation candidate is `874b9af6061d3b867134e5427c038f2c7fb9f7ba`.
+**PASS — no findings remain.** This repair fixes verification 6 finding
+F-6-1 at its cause. The `build-output` claim now uses Vitest's supported
+`--testNamePattern` option. Its existing tagged regression test is
+outcome-based: it runs the production build and verifies the required
+deployable files in `dist/`.
 
-The complete report is [`verification-6.md`](verification-6.md).
+Implementation: `dd6c3c4d0ad6e558a08a656592907ed8ec7fb17e`.
 
-## Required repair
+## What changed
 
-The `build-output` entry in `.factory/claims.json` declares
-`npm test -- --grep @claim:build-output`. Vitest rejects `--grep`, so the exact
-claim command fails from a clean install. Replace it with the supported name
-filter. `npm test -- --testNamePattern @claim:build-output` was checked and
-passes the one tagged test.
+- Changed the one `build-output` command in `.factory/claims.json` from the
+  unsupported `--grep` to `--testNamePattern @claim:build-output`.
+- Kept the game, published copy, product scope, storage model, and shipped
+  asset bundle unchanged.
+- Copied the verb-first catalog description to
+  `/work/.evidence/catalog-description.txt`.
 
-No product source was changed during independent verification.
+## Verification
 
-## Verification summary
+From a separate clean clone at the implementation SHA, `npm ci` completed
+with 141 packages and no reported vulnerabilities. All 18 exact commands in
+`.factory/claims.json` passed individually, including:
 
-- Opened fresh 1440×900 and 390×844 live browsers without scrolling.
-- Confirmed the job, audience, sample action, three facts, and active game.
-- Verified one-click demo entry, persistent label, reset, real-data isolation,
-  and Start for real.
-- Completed and recorded a deterministic 20-challenge live run to a 4/20 end
-  screen with all four challenge types, copy, explanation, and restart.
-- Verified keyboard, boundary, invalid-storage, refresh, offline, reduced-motion,
-  visibility-pause, focus, mobile, 200% text, and clipboard-denial paths.
-- Verified titles, metadata, links, legal pages, deliberate 404 responses,
-  security headers, privacy requests, and all earlier findings.
-- Ran all 18 exact claim commands: 17 passed and `build-output` failed.
-- Ran `npm test` (9), typecheck, lint, Playwright (31), and build; all passed.
-- Fresh Lighthouse `/demo`: 100 Performance, Accessibility, Best Practices,
-  and SEO. Phone frame rate measured 60.003 FPS.
+```bash
+npm test -- --testNamePattern @claim:build-output
+```
 
-## Evidence
+That command ran one matching test. The test executed `npm run build` and
+checked `dist/index.html`, `dist/404.html`, the deployment config, robots,
+and sitemap outputs.
 
-Use `.factory/verification-6-*.png`, `.factory/evidence-verification-6-root/`,
-`.factory/evidence-verification-6-demo/`, and
-`.factory/lighthouse-verification-6.json`.
+The repository gates also passed:
 
-The product is static. Backend, SQLite, rate-limit, multiplayer, PWA-update,
-and installed-consumer checks do not apply.
+```bash
+npm test                 # 9 passed
+npm run typecheck
+npm run lint
+npx playwright test      # 31 passed
+npm run build            # dist/ emitted; 21.75 kB JS, 12.32 kB CSS
+```
+
+The `test-results/` artifact recorded the full browser suite as `passed` and
+was removed afterward.
+
+## HTTPS check and game run
+
+`dd6c3c4` was pushed to `origin/main`. No repository deployment wrapper is
+configured. This repair affects the factory verification manifest only, which
+is not part of the Vite production bundle, so a product-image change is not
+expected. The HTTPS product was checked cold after the push.
+
+- `/`, `/demo`, `/privacy`, and `/terms` returned 200. `/404` and an unknown
+  address returned the designed page with HTTP 404.
+- Fresh 1440×900 desktop and 390×844 touch contexts stated the job as
+  **Compare your confidence with your answers**, named curious adults as the
+  audience, and offered **Try it with sample data** before scrolling.
+- At 390×844 the active challenge strip began at 665 px and its prompt at
+  777 px, so active play was visible on the first screen.
+- The sample action opened a populated visual-estimate challenge. The
+  persistent banner read **Demo — sample data, nothing is saved**. An answer,
+  feedback, and **Reset demo** left a seeded real-game value unchanged. Reset
+  restored `{ round: 0, answers: [], phase: "answer" }`.
+- A deterministic 20-challenge demo run reached the real result screen with a
+  3/20 score and four populated calibration rows. This is a completed loss
+  result, not a mocked end screen.
+- No browser console or page errors occurred. Playwright axe checks found no
+  serious or critical violations on `/`, `/demo`, `/privacy`, `/terms`,
+  `/404`, or an unknown route.
+- Live response headers included the self-only CSP, HSTS, `nosniff`, and the
+  strict-origin referrer policy. Requests and storage behavior remain covered
+  by the passing `local-scores` and `no-server-data` claims.
+
+## Earlier history
+
+The earlier review and verification records were read before this repair.
+Their pattern choices, daily challenge variation, visible active game,
+first-read audience, accessible visual alternatives, malformed-storage
+recovery, route metadata, touch targets, duration measurement, no-server-data
+proof, static 404, design, demo wording, result sharing, and copy findings
+remain fixed. Verification 6 was the only outstanding finding, and its exact
+claim command now passes from the clean clone.
+
+## Scope and known gaps
+
+Sure Shot is a static, local-first entertainment game. It has no backend,
+account, payment, analytics, multiplayer, service worker, external AI, or
+third-party requests. Backend isolation, SQLite restart, rate limiting,
+PWA-update, and installed-consumer checks do not apply. There are no known
+remaining product gaps for this repair.
+
+See [`verification-7.md`](verification-7.md) for the complete repair record.
